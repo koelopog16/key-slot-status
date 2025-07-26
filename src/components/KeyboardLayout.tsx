@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { KeyboardKey } from "./KeyboardKey";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -88,13 +88,51 @@ const keyboardRows: KeyData[][] = [
   ],
 ];
 
+const STORAGE_KEY = "keyboard-hotkeys-config";
+
+const loadSavedKeys = (): Record<ModifierCategory, Set<string>> => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return {
+        "ctrl+shift": new Set(parsed["ctrl+shift"] || []),
+        "ctrl+shift+alt": new Set(parsed["ctrl+shift+alt"] || []),
+        "ctrl+alt": new Set(parsed["ctrl+alt"] || []),
+      };
+    }
+  } catch (error) {
+    console.warn("Failed to load saved hotkeys:", error);
+  }
+  
+  // Default configuration
+  return {
+    "ctrl+shift": new Set(),
+    "ctrl+shift+alt": new Set(),
+    "ctrl+alt": new Set(),
+  };
+};
+
+const saveKeys = (keys: Record<ModifierCategory, Set<string>>) => {
+  try {
+    const serializable = {
+      "ctrl+shift": Array.from(keys["ctrl+shift"]),
+      "ctrl+shift+alt": Array.from(keys["ctrl+shift+alt"]),
+      "ctrl+alt": Array.from(keys["ctrl+alt"]),
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(serializable));
+  } catch (error) {
+    console.warn("Failed to save hotkeys:", error);
+  }
+};
+
 export const KeyboardLayout = () => {
   const [currentCategory, setCurrentCategory] = useState<ModifierCategory>("ctrl+shift");
-  const [takenKeys, setTakenKeys] = useState<Record<ModifierCategory, Set<string>>>({
-    "ctrl+shift": new Set(["KeyA", "KeyS", "KeyD"]), // Example taken keys
-    "ctrl+shift+alt": new Set(["KeyW", "KeyE"]),
-    "ctrl+alt": new Set(["KeyQ", "KeyR", "KeyT"]),
-  });
+  const [takenKeys, setTakenKeys] = useState<Record<ModifierCategory, Set<string>>>(loadSavedKeys);
+
+  useEffect(() => {
+    saveKeys(takenKeys);
+  }, [takenKeys]);
 
   const toggleKey = (keyCode: string) => {
     setTakenKeys(prev => {
