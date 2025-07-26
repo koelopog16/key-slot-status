@@ -8,45 +8,45 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 222 17% 12%;
-    --foreground: 210 15% 85%;
+    --background: 240 21% 15%;
+    --foreground: 227 68% 88%;
 
-    --card: 222 20% 15%;
-    --card-foreground: 210 15% 85%;
+    --card: 240 25% 18%;
+    --card-foreground: 227 68% 88%;
 
-    --popover: 222 20% 15%;
-    --popover-foreground: 210 15% 85%;
+    --popover: 240 25% 18%;
+    --popover-foreground: 227 68% 88%;
 
-    --primary: 217 91% 60%;
-    --primary-foreground: 222 17% 12%;
+    --primary: 217 92% 76%;
+    --primary-foreground: 240 21% 15%;
 
-    --secondary: 222 15% 20%;
-    --secondary-foreground: 210 15% 85%;
+    --secondary: 240 16% 26%;
+    --secondary-foreground: 227 68% 88%;
 
-    --muted: 222 15% 18%;
-    --muted-foreground: 215 15% 60%;
+    --muted: 240 15% 20%;
+    --muted-foreground: 228 39% 80%;
 
-    --accent: 217 91% 60%;
-    --accent-foreground: 222 17% 12%;
+    --accent: 240 16% 26%;
+    --accent-foreground: 227 68% 88%;
 
-    --destructive: 0 75% 60%;
-    --destructive-foreground: 210 15% 85%;
+    --destructive: 343 81% 75%;
+    --destructive-foreground: 227 68% 88%;
 
-    --success: 142 76% 36%;
-    --success-foreground: 210 15% 85%;
+    --success: 115 54% 76%;
+    --success-foreground: 240 21% 15%;
 
-    --warning: 38 92% 50%;
-    --warning-foreground: 222 17% 12%;
+    --warning: 35 77% 79%;
+    --warning-foreground: 240 21% 15%;
 
-    --border: 222 15% 25%;
-    --input: 222 15% 20%;
-    --ring: 217 91% 60%;
+    --border: 240 15% 26%;
+    --input: 240 16% 26%;
+    --ring: 217 92% 76%;
 
-    --key-available: 142 76% 36%;
-    --key-taken: 0 75% 60%;
-    --key-hover: 217 91% 60%;
-    --key-background: 222 15% 20%;
-    --key-border: 222 15% 30%;
+    --key-available: 115 54% 76%;
+    --key-taken: 343 81% 75%;
+    --key-hover: 267 84% 81%;
+    --key-background: 240 16% 26%;
+    --key-border: 240 13% 35%;
 
     --radius: 0.5rem;
 
