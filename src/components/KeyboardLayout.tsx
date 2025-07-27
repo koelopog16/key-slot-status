@@ -95,6 +95,7 @@ const keyboardRows: KeyData[][] = [
 const STORAGE_KEY = "keyboard-hotkeys-config";
 const GAMING_MODE_KEY = "gaming-mode-enabled";
 const DESCRIPTIONS_KEY = "hotkey-descriptions";
+const EXCLUDED_KEYS_KEY = "excluded-keys";
 
 
 // Gaming keys that should be locked in gaming mode
@@ -156,6 +157,26 @@ const saveDescriptions = (descriptions: Record<string, string>) => {
   }
 };
 
+// Function to load excluded keys from localStorage
+const loadExcludedKeys = (): Set<string> => {
+  try {
+    const saved = localStorage.getItem(EXCLUDED_KEYS_KEY);
+    return saved ? new Set(JSON.parse(saved)) : new Set();
+  } catch (error) {
+    console.error("Failed to load excluded keys from localStorage:", error);
+    return new Set();
+  }
+};
+
+// Function to save excluded keys to localStorage
+const saveExcludedKeys = (excludedKeys: Set<string>) => {
+  try {
+    localStorage.setItem(EXCLUDED_KEYS_KEY, JSON.stringify(Array.from(excludedKeys)));
+  } catch (error) {
+    console.error("Failed to save excluded keys to localStorage:", error);
+  }
+};
+
 export const KeyboardLayout = () => {
   const [currentCategory, setCurrentCategory] = useState<ModifierCategory>("ctrl+shift");
   const [takenKeys, setTakenKeys] = useState<Record<ModifierCategory, Set<string>>>(loadSavedKeys);
@@ -164,6 +185,7 @@ export const KeyboardLayout = () => {
     return saved ? JSON.parse(saved) : false;
   });
   const [descriptions, setDescriptions] = useState<Record<string, string>>(loadDescriptions);
+  const [excludedKeys, setExcludedKeys] = useState<Set<string>>(loadExcludedKeys);
   const [descriptionDialog, setDescriptionDialog] = useState<{
     isOpen: boolean;
     keyCode: string;
@@ -181,6 +203,31 @@ export const KeyboardLayout = () => {
   useEffect(() => {
     saveDescriptions(descriptions);
   }, [descriptions]);
+
+  useEffect(() => {
+    saveExcludedKeys(excludedKeys);
+  }, [excludedKeys]);
+
+  // Handle double-click to exclude/include keys
+  const handleKeyDoubleClick = (keyCode: string) => {
+    if (gamingMode && GAMING_KEYS.includes(keyCode)) {
+      return; // Don't allow excluding gaming keys
+    }
+    
+    if (isModifierKey(keyCode)) {
+      return; // Don't allow excluding modifier keys
+    }
+
+    setExcludedKeys(prev => {
+      const newExcluded = new Set(prev);
+      if (newExcluded.has(keyCode)) {
+        newExcluded.delete(keyCode);
+      } else {
+        newExcluded.add(keyCode);
+      }
+      return newExcluded;
+    });
+  };
 
 
   const toggleKey = (keyCode: string) => {
@@ -427,8 +474,10 @@ export const KeyboardLayout = () => {
                      isExtraWide={key.isExtraWide}
                      isTaken={getKeyStatus(key.code)}
                      onClick={() => handleKeyClick(key.code, key.label)}
+                     onDoubleClick={() => handleKeyDoubleClick(key.code)}
                      disabled={isModifierKey(key.code)}
                      isGamingKey={gamingMode && GAMING_KEYS.includes(key.code)}
+                     isExcluded={excludedKeys.has(key.code)}
                      description={descriptions[key.code]}
                    />
                 ))}
@@ -439,10 +488,11 @@ export const KeyboardLayout = () => {
 
         {/* Legend */}
         <Card className="p-4">
-          <div className="text-center text-sm text-muted-foreground">
+          <div className="text-center text-sm text-muted-foreground space-y-2">
             <p>Modifier keys (Ctrl, Alt, Shift) are disabled as they are part of the combination.</p>
             <p>Red indicator means the key combination is already assigned.</p>
             {gamingMode && <p>Yellow keys are locked gaming keys (WASD, I, O, /, Tab, Caps, Backspace, Enter, Space).</p>}
+            <p><strong>Double-click any key twice to exclude it (gray) or reinstate it.</strong></p>
           </div>
         </Card>
 

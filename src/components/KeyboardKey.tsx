@@ -7,8 +7,10 @@ interface KeyboardKeyProps {
   isExtraWide?: boolean;
   isTaken: boolean;
   onClick: () => void;
+  onDoubleClick?: () => void;
   disabled?: boolean;
   isGamingKey?: boolean;
+  isExcluded?: boolean;
   description?: string;
 }
 
@@ -19,13 +21,16 @@ export const KeyboardKey = ({
   isExtraWide = false,
   isTaken, 
   onClick,
+  onDoubleClick,
   disabled = false,
   isGamingKey = false,
+  isExcluded = false,
   description
 }: KeyboardKeyProps) => {
   return (
     <button
       onClick={onClick}
+      onDoubleClick={onDoubleClick}
       disabled={disabled}
       className={cn(
         "relative h-12 rounded-md border-2 font-mono text-sm font-medium transition-all duration-200 flex items-center justify-center",
@@ -37,9 +42,10 @@ export const KeyboardKey = ({
           "w-12": !isWide && !isExtraWide,
           "w-20": isWide,
           "w-32": isExtraWide,
-          "border-key-taken bg-key-taken/20 text-key-taken": isTaken && !disabled && !isGamingKey,
-          "border-key-available bg-key-available/20 text-key-available": !isTaken && !disabled && !isGamingKey,
+          "border-key-taken bg-key-taken/20 text-key-taken": isTaken && !disabled && !isGamingKey && !isExcluded,
+          "border-key-available bg-key-available/20 text-key-available": !isTaken && !disabled && !isGamingKey && !isExcluded,
           "border-key-gaming bg-key-gaming/20 text-key-gaming": isGamingKey,
+          "border-muted bg-muted/50 text-muted-foreground opacity-60": isExcluded,
         }
       )}
     >
