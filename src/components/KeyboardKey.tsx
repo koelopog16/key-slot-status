@@ -8,6 +8,8 @@ interface KeyboardKeyProps {
   isTaken: boolean;
   onClick: () => void;
   disabled?: boolean;
+  isGamingKey?: boolean;
+  description?: string;
 }
 
 export const KeyboardKey = ({ 
@@ -17,7 +19,9 @@ export const KeyboardKey = ({
   isExtraWide = false,
   isTaken, 
   onClick,
-  disabled = false
+  disabled = false,
+  isGamingKey = false,
+  description
 }: KeyboardKeyProps) => {
   return (
     <button
@@ -33,14 +37,25 @@ export const KeyboardKey = ({
           "w-12": !isWide && !isExtraWide,
           "w-20": isWide,
           "w-32": isExtraWide,
-          "border-key-taken bg-key-taken/20 text-key-taken": isTaken && !disabled,
-          "border-key-available bg-key-available/20 text-key-available": !isTaken && !disabled,
+          "border-key-taken bg-key-taken/20 text-key-taken": isTaken && !disabled && !isGamingKey,
+          "border-key-available bg-key-available/20 text-key-available": !isTaken && !disabled && !isGamingKey,
+          "border-key-gaming bg-key-gaming/20 text-key-gaming": isGamingKey,
         }
       )}
     >
-      <span className="text-xs">{keyLabel}</span>
-      {isTaken && (
+      <div className="flex flex-col items-center justify-center h-full">
+        <span className="text-xs">{keyLabel}</span>
+        {description && (
+          <span className="text-[8px] text-muted-foreground mt-0.5 truncate max-w-full px-1">
+            {description}
+          </span>
+        )}
+      </div>
+      {isTaken && !isGamingKey && (
         <div className="absolute -top-1 -right-1 w-3 h-3 bg-key-taken rounded-full border border-background" />
+      )}
+      {isGamingKey && (
+        <div className="absolute -top-1 -right-1 w-3 h-3 bg-key-gaming rounded-full border border-background" />
       )}
     </button>
   );

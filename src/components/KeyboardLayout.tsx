@@ -1,7 +1,11 @@
 import { useState, useEffect } from "react";
 import { KeyboardKey } from "./KeyboardKey";
+import { HotkeyDescriptionDialog } from "./HotkeyDescriptionDialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Download, Upload } from "lucide-react";
 
 type ModifierCategory = "ctrl+shift" | "ctrl+shift+alt" | "ctrl+alt";
 
@@ -89,6 +93,12 @@ const keyboardRows: KeyData[][] = [
 ];
 
 const STORAGE_KEY = "keyboard-hotkeys-config";
+const GAMING_MODE_KEY = "gaming-mode-enabled";
+const DESCRIPTIONS_KEY = "hotkey-descriptions";
+const SHOW_DESCRIPTIONS_KEY = "show-descriptions";
+
+// Gaming keys that should be locked in gaming mode
+const GAMING_KEYS = ["KeyW", "KeyA", "KeyS", "KeyD", "KeyI", "KeyO", "Slash", "Tab", "CapsLock", "Backspace", "Enter", "Space"];
 
 const loadSavedKeys = (): Record<ModifierCategory, Set<string>> => {
   try {
@@ -126,15 +136,65 @@ const saveKeys = (keys: Record<ModifierCategory, Set<string>>) => {
   }
 };
 
+// Function to load descriptions from localStorage
+const loadDescriptions = (): Record<string, string> => {
+  try {
+    const saved = localStorage.getItem(DESCRIPTIONS_KEY);
+    return saved ? JSON.parse(saved) : {};
+  } catch (error) {
+    console.error("Failed to load descriptions from localStorage:", error);
+    return {};
+  }
+};
+
+// Function to save descriptions to localStorage
+const saveDescriptions = (descriptions: Record<string, string>) => {
+  try {
+    localStorage.setItem(DESCRIPTIONS_KEY, JSON.stringify(descriptions));
+  } catch (error) {
+    console.error("Failed to save descriptions to localStorage:", error);
+  }
+};
+
 export const KeyboardLayout = () => {
   const [currentCategory, setCurrentCategory] = useState<ModifierCategory>("ctrl+shift");
   const [takenKeys, setTakenKeys] = useState<Record<ModifierCategory, Set<string>>>(loadSavedKeys);
+  const [gamingMode, setGamingMode] = useState<boolean>(() => {
+    const saved = localStorage.getItem(GAMING_MODE_KEY);
+    return saved ? JSON.parse(saved) : false;
+  });
+  const [descriptions, setDescriptions] = useState<Record<string, string>>(loadDescriptions);
+  const [showDescriptions, setShowDescriptions] = useState<boolean>(() => {
+    const saved = localStorage.getItem(SHOW_DESCRIPTIONS_KEY);
+    return saved ? JSON.parse(saved) : false;
+  });
+  const [descriptionDialog, setDescriptionDialog] = useState<{
+    isOpen: boolean;
+    keyCode: string;
+    keyLabel: string;
+  }>({ isOpen: false, keyCode: "", keyLabel: "" });
 
   useEffect(() => {
     saveKeys(takenKeys);
   }, [takenKeys]);
 
+  useEffect(() => {
+    localStorage.setItem(GAMING_MODE_KEY, JSON.stringify(gamingMode));
+  }, [gamingMode]);
+
+  useEffect(() => {
+    saveDescriptions(descriptions);
+  }, [descriptions]);
+
+  useEffect(() => {
+    localStorage.setItem(SHOW_DESCRIPTIONS_KEY, JSON.stringify(showDescriptions));
+  }, [showDescriptions]);
+
   const toggleKey = (keyCode: string) => {
+    if (gamingMode && GAMING_KEYS.includes(keyCode)) {
+      return; // Don't allow toggling gaming keys when gaming mode is on
+    }
+    
     setTakenKeys(prev => {
       const newTakenKeys = { ...prev };
       const currentSet = new Set(prev[currentCategory]);
@@ -156,6 +216,90 @@ export const KeyboardLayout = () => {
 
   const isModifierKey = (keyCode: string) => {
     return ["ControlLeft", "ControlRight", "AltLeft", "AltRight", "ShiftLeft", "ShiftRight"].includes(keyCode);
+  };
+
+  // Export data as CSV
+  const exportToCSV = () => {
+    const csvContent = [
+      "Category,KeyCode,Description",
+      ...Object.entries(takenKeys).flatMap(([category, keys]) =>
+        Array.from(keys).map(keyCode => 
+          `${category},"${keyCode}","${descriptions[keyCode] || ""}"`
+        )
+      )
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "hotkey-configuration.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Import data from CSV
+  const importFromCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const csvContent = e.target?.result as string;
+        const lines = csvContent.split("\n").slice(1); // Skip header
+        
+        const newTakenKeys: Record<ModifierCategory, Set<string>> = {
+          "ctrl+shift": new Set(),
+          "ctrl+shift+alt": new Set(),
+          "ctrl+alt": new Set(),
+        };
+        const newDescriptions: Record<string, string> = {};
+
+        lines.forEach(line => {
+          const match = line.match(/^([^,]+),"([^"]+)","([^"]*)"$/);
+          if (match) {
+            const [, category, keyCode, description] = match;
+            if (category in newTakenKeys) {
+              newTakenKeys[category as ModifierCategory].add(keyCode);
+              if (description) {
+                newDescriptions[keyCode] = description;
+              }
+            }
+          }
+        });
+
+        setTakenKeys(newTakenKeys);
+        setDescriptions(newDescriptions);
+      } catch (error) {
+        console.error("Failed to import CSV:", error);
+      }
+    };
+    reader.readAsText(file);
+    event.target.value = ""; // Reset input
+  };
+
+  // Handle key click with description dialog
+  const handleKeyClick = (keyCode: string, keyLabel: string) => {
+    if (gamingMode && GAMING_KEYS.includes(keyCode)) {
+      return; // Don't allow interaction with gaming keys
+    }
+
+    if (showDescriptions && !getKeyStatus(keyCode)) {
+      // Open description dialog for new keys when descriptions are enabled
+      setDescriptionDialog({ isOpen: true, keyCode, keyLabel });
+    } else {
+      // Toggle key normally
+      toggleKey(keyCode);
+    }
+  };
+
+  const handleDescriptionSave = (description: string) => {
+    setDescriptions(prev => ({
+      ...prev,
+      [descriptionDialog.keyCode]: description
+    }));
+    toggleKey(descriptionDialog.keyCode);
   };
 
   const getCategoryLabel = (category: ModifierCategory) => {
@@ -180,6 +324,54 @@ export const KeyboardLayout = () => {
           <h1 className="text-4xl font-bold text-foreground">Keyboard Hotkey Manager</h1>
           <p className="text-muted-foreground">Manage your soundboard and application hotkeys</p>
         </div>
+
+        {/* Controls */}
+        <Card className="p-6">
+          <div className="space-y-4">
+            {/* Gaming Mode and Description Toggles */}
+            <div className="flex items-center justify-center gap-8">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="gaming-mode"
+                  checked={gamingMode}
+                  onCheckedChange={setGamingMode}
+                />
+                <Label htmlFor="gaming-mode">Gaming Mode</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="show-descriptions"
+                  checked={showDescriptions}
+                  onCheckedChange={setShowDescriptions}
+                />
+                <Label htmlFor="show-descriptions">Show Descriptions</Label>
+              </div>
+            </div>
+
+            {/* Import/Export Controls */}
+            <div className="flex justify-center gap-4">
+              <Button onClick={exportToCSV} variant="outline" className="flex items-center gap-2">
+                <Download className="w-4 h-4" />
+                Export CSV
+              </Button>
+              <Button
+                onClick={() => document.getElementById("csv-import")?.click()}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <Upload className="w-4 h-4" />
+                Import CSV
+              </Button>
+              <input
+                id="csv-import"
+                type="file"
+                accept=".csv"
+                onChange={importFromCSV}
+                className="hidden"
+              />
+            </div>
+          </div>
+        </Card>
 
         {/* Category Selector */}
         <Card className="p-6">
@@ -226,6 +418,12 @@ export const KeyboardLayout = () => {
                 <div className="w-3 h-3 bg-key-taken rounded-full"></div>
                 <span>Taken</span>
               </div>
+              {gamingMode && (
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-key-gaming rounded-full"></div>
+                  <span>Gaming Keys</span>
+                </div>
+              )}
             </div>
           </div>
         </Card>
@@ -236,16 +434,18 @@ export const KeyboardLayout = () => {
             {keyboardRows.map((row, rowIndex) => (
               <div key={rowIndex} className="flex gap-2 justify-center">
                 {row.map((key) => (
-                  <KeyboardKey
-                    key={key.code}
-                    keyLabel={key.label}
-                    keyCode={key.code}
-                    isWide={key.isWide}
-                    isExtraWide={key.isExtraWide}
-                    isTaken={getKeyStatus(key.code)}
-                    onClick={() => toggleKey(key.code)}
-                    disabled={isModifierKey(key.code)}
-                  />
+                   <KeyboardKey
+                     key={key.code}
+                     keyLabel={key.label}
+                     keyCode={key.code}
+                     isWide={key.isWide}
+                     isExtraWide={key.isExtraWide}
+                     isTaken={getKeyStatus(key.code)}
+                     onClick={() => handleKeyClick(key.code, key.label)}
+                     disabled={isModifierKey(key.code)}
+                     isGamingKey={gamingMode && GAMING_KEYS.includes(key.code)}
+                     description={showDescriptions ? descriptions[key.code] : undefined}
+                   />
                 ))}
               </div>
             ))}
@@ -257,8 +457,17 @@ export const KeyboardLayout = () => {
           <div className="text-center text-sm text-muted-foreground">
             <p>Modifier keys (Ctrl, Alt, Shift) are disabled as they are part of the combination.</p>
             <p>Red indicator means the key combination is already assigned.</p>
+            {gamingMode && <p>Yellow keys are locked gaming keys (WASD, I, O, /, Tab, Caps, Backspace, Enter, Space).</p>}
           </div>
         </Card>
+
+        <HotkeyDescriptionDialog
+          isOpen={descriptionDialog.isOpen}
+          onClose={() => setDescriptionDialog({ isOpen: false, keyCode: "", keyLabel: "" })}
+          onSave={handleDescriptionSave}
+          keyLabel={descriptionDialog.keyLabel}
+          currentDescription={descriptions[descriptionDialog.keyCode]}
+        />
       </div>
     </div>
   );
