@@ -95,7 +95,7 @@ const keyboardRows: KeyData[][] = [
 const STORAGE_KEY = "keyboard-hotkeys-config";
 const GAMING_MODE_KEY = "gaming-mode-enabled";
 const DESCRIPTIONS_KEY = "hotkey-descriptions";
-const SHOW_DESCRIPTIONS_KEY = "show-descriptions";
+
 
 // Gaming keys that should be locked in gaming mode
 const GAMING_KEYS = ["KeyW", "KeyA", "KeyS", "KeyD", "KeyI", "KeyO", "Slash", "Tab", "CapsLock", "Backspace", "Enter", "Space"];
@@ -164,10 +164,6 @@ export const KeyboardLayout = () => {
     return saved ? JSON.parse(saved) : false;
   });
   const [descriptions, setDescriptions] = useState<Record<string, string>>(loadDescriptions);
-  const [showDescriptions, setShowDescriptions] = useState<boolean>(() => {
-    const saved = localStorage.getItem(SHOW_DESCRIPTIONS_KEY);
-    return saved ? JSON.parse(saved) : false;
-  });
   const [descriptionDialog, setDescriptionDialog] = useState<{
     isOpen: boolean;
     keyCode: string;
@@ -186,9 +182,6 @@ export const KeyboardLayout = () => {
     saveDescriptions(descriptions);
   }, [descriptions]);
 
-  useEffect(() => {
-    localStorage.setItem(SHOW_DESCRIPTIONS_KEY, JSON.stringify(showDescriptions));
-  }, [showDescriptions]);
 
   const toggleKey = (keyCode: string) => {
     if (gamingMode && GAMING_KEYS.includes(keyCode)) {
@@ -285,8 +278,8 @@ export const KeyboardLayout = () => {
       return; // Don't allow interaction with gaming keys
     }
 
-    if (showDescriptions && !getKeyStatus(keyCode)) {
-      // Open description dialog for new keys when descriptions are enabled
+    if (!getKeyStatus(keyCode)) {
+      // Open description dialog for new keys
       setDescriptionDialog({ isOpen: true, keyCode, keyLabel });
     } else {
       // Toggle key normally
@@ -328,8 +321,8 @@ export const KeyboardLayout = () => {
         {/* Controls */}
         <Card className="p-6">
           <div className="space-y-4">
-            {/* Gaming Mode and Description Toggles */}
-            <div className="flex items-center justify-center gap-8">
+            {/* Gaming Mode Toggle */}
+            <div className="flex items-center justify-center">
               <div className="flex items-center space-x-2">
                 <Switch
                   id="gaming-mode"
@@ -337,14 +330,6 @@ export const KeyboardLayout = () => {
                   onCheckedChange={setGamingMode}
                 />
                 <Label htmlFor="gaming-mode">Gaming Mode</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="show-descriptions"
-                  checked={showDescriptions}
-                  onCheckedChange={setShowDescriptions}
-                />
-                <Label htmlFor="show-descriptions">Show Descriptions</Label>
               </div>
             </div>
 
@@ -444,7 +429,7 @@ export const KeyboardLayout = () => {
                      onClick={() => handleKeyClick(key.code, key.label)}
                      disabled={isModifierKey(key.code)}
                      isGamingKey={gamingMode && GAMING_KEYS.includes(key.code)}
-                     description={showDescriptions ? descriptions[key.code] : undefined}
+                     description={descriptions[key.code]}
                    />
                 ))}
               </div>
