@@ -8,7 +8,6 @@ interface KeyboardKeyProps {
   isTaken: boolean;
   onClick: () => void;
   disabled?: boolean;
-  isGamingKey?: boolean;
   isExcluded?: boolean;
   description?: string;
 }
@@ -21,7 +20,6 @@ export const KeyboardKey = ({
   isTaken, 
   onClick,
   disabled = false,
-  isGamingKey = false,
   isExcluded = false,
   description
 }: KeyboardKeyProps) => {
@@ -39,9 +37,8 @@ export const KeyboardKey = ({
           "w-12": !isWide && !isExtraWide,
           "w-20": isWide,
           "w-32": isExtraWide,
-          "border-key-taken bg-key-taken/20 text-key-taken": isTaken && !disabled && !isGamingKey && !isExcluded,
-          "border-key-available bg-key-available/20 text-key-available": !isTaken && !disabled && !isGamingKey && !isExcluded,
-          "border-key-gaming bg-key-gaming/20 text-key-gaming": isGamingKey,
+          "border-key-taken bg-key-taken/20 text-key-taken": isTaken && !disabled && !isExcluded,
+          "border-key-available bg-key-available/20 text-key-available": !isTaken && !disabled && !isExcluded,
           "border-muted bg-muted/50 text-muted-foreground opacity-60": isExcluded,
         }
       )}
@@ -54,11 +51,8 @@ export const KeyboardKey = ({
           </span>
         )}
       </div>
-      {isTaken && !isGamingKey && (
+      {isTaken && (
         <div className="absolute -top-1 -right-1 w-3 h-3 bg-key-taken rounded-full border border-background" />
-      )}
-      {isGamingKey && (
-        <div className="absolute -top-1 -right-1 w-3 h-3 bg-key-gaming rounded-full border border-background" />
       )}
     </button>
   );

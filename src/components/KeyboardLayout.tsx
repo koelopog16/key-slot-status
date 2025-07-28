@@ -93,13 +93,8 @@ const keyboardRows: KeyData[][] = [
 ];
 
 const STORAGE_KEY = "keyboard-hotkeys-config";
-const GAMING_MODE_KEY = "gaming-mode-enabled";
 const DESCRIPTIONS_KEY = "hotkey-descriptions";
 const EXCLUDED_KEYS_KEY = "excluded-keys";
-
-
-// Gaming keys that should be locked in gaming mode
-const GAMING_KEYS = ["KeyW", "KeyA", "KeyS", "KeyD", "KeyI", "KeyO", "Slash", "Tab", "CapsLock", "Backspace", "Enter", "Space"];
 
 const loadSavedKeys = (): Record<ModifierCategory, Set<string>> => {
   try {
@@ -180,13 +175,8 @@ const saveExcludedKeys = (excludedKeys: Set<string>) => {
 export const KeyboardLayout = () => {
   const [currentCategory, setCurrentCategory] = useState<ModifierCategory>("ctrl+shift");
   const [takenKeys, setTakenKeys] = useState<Record<ModifierCategory, Set<string>>>(loadSavedKeys);
-  const [gamingMode, setGamingMode] = useState<boolean>(() => {
-    const saved = localStorage.getItem(GAMING_MODE_KEY);
-    return saved ? JSON.parse(saved) : false;
-  });
   const [isExcludeMode, setIsExcludeMode] = useState(false);
   const [descriptions, setDescriptions] = useState<Record<string, string>>(loadDescriptions);
-  const [gamingDescriptions, setGamingDescriptions] = useState<Record<string, string>>({});
   const [excludedKeys, setExcludedKeys] = useState<Set<string>>(loadExcludedKeys);
   const [descriptionDialog, setDescriptionDialog] = useState<{
     isOpen: boolean;
@@ -199,10 +189,6 @@ export const KeyboardLayout = () => {
   }, [takenKeys]);
 
   useEffect(() => {
-    localStorage.setItem(GAMING_MODE_KEY, JSON.stringify(gamingMode));
-  }, [gamingMode]);
-
-  useEffect(() => {
     saveDescriptions(descriptions);
   }, [descriptions]);
 
@@ -212,10 +198,6 @@ export const KeyboardLayout = () => {
 
   // Handle exclude mode toggle
   const toggleExcludeKey = (keyCode: string) => {
-    if (gamingMode && GAMING_KEYS.includes(keyCode)) {
-      return; // Don't allow excluding gaming keys
-    }
-    
     if (isModifierKey(keyCode)) {
       return; // Don't allow excluding modifier keys
     }
@@ -231,12 +213,7 @@ export const KeyboardLayout = () => {
     });
   };
 
-
   const toggleKey = (keyCode: string) => {
-    if (gamingMode && GAMING_KEYS.includes(keyCode)) {
-      return; // Don't allow toggling gaming keys when gaming mode is on
-    }
-    
     setTakenKeys(prev => {
       const newTakenKeys = { ...prev };
       const currentSet = new Set(prev[currentCategory]);
@@ -244,14 +221,9 @@ export const KeyboardLayout = () => {
       if (currentSet.has(keyCode)) {
         currentSet.delete(keyCode);
         // Clear description when key becomes available
-        const currentDescriptions = gamingMode ? gamingDescriptions : descriptions;
-        const updatedDescriptions = { ...currentDescriptions };
+        const updatedDescriptions = { ...descriptions };
         delete updatedDescriptions[keyCode];
-        if (gamingMode) {
-          setGamingDescriptions(updatedDescriptions);
-        } else {
-          setDescriptions(updatedDescriptions);
-        }
+        setDescriptions(updatedDescriptions);
       } else {
         currentSet.add(keyCode);
       }
@@ -332,8 +304,9 @@ export const KeyboardLayout = () => {
 
   // Handle key click with exclude mode or normal toggle
   const handleKeyClick = (keyCode: string, keyLabel: string) => {
-    if (gamingMode && GAMING_KEYS.includes(keyCode)) {
-      return; // Don't allow interaction with gaming keys
+    // If key is excluded and not in exclude mode, don't allow any interaction
+    if (excludedKeys.has(keyCode) && !isExcludeMode) {
+      return;
     }
 
     if (isExcludeMode) {
@@ -351,17 +324,10 @@ export const KeyboardLayout = () => {
   };
 
   const handleDescriptionSave = (description: string) => {
-    if (gamingMode) {
-      setGamingDescriptions(prev => ({
-        ...prev,
-        [descriptionDialog.keyCode]: description
-      }));
-    } else {
-      setDescriptions(prev => ({
-        ...prev,
-        [descriptionDialog.keyCode]: description
-      }));
-    }
+    setDescriptions(prev => ({
+      ...prev,
+      [descriptionDialog.keyCode]: description
+    }));
     toggleKey(descriptionDialog.keyCode);
   };
 
@@ -395,16 +361,8 @@ export const KeyboardLayout = () => {
         {/* Controls */}
         <Card className="p-6">
           <div className="space-y-4">
-            {/* Gaming Mode and Exclude Mode Toggles */}
-            <div className="flex items-center justify-center gap-8">
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="gaming-mode"
-                  checked={gamingMode}
-                  onCheckedChange={setGamingMode}
-                />
-                <Label htmlFor="gaming-mode">Gaming Mode</Label>
-              </div>
+            {/* Exclude Mode Toggle */}
+            <div className="flex items-center justify-center">
               <div className="flex items-center space-x-2">
                 <Switch
                   id="exclude-mode"
@@ -485,12 +443,6 @@ export const KeyboardLayout = () => {
                 <div className="w-3 h-3 bg-key-taken rounded-full"></div>
                 <span>Taken</span>
               </div>
-              {gamingMode && (
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-key-gaming rounded-full"></div>
-                  <span>Gaming Keys</span>
-                </div>
-              )}
             </div>
           </div>
         </Card>
@@ -509,10 +461,9 @@ export const KeyboardLayout = () => {
                      isExtraWide={key.isExtraWide}
                      isTaken={getKeyStatus(key.code)}
                      onClick={() => handleKeyClick(key.code, key.label)}
-                     disabled={isModifierKey(key.code)}
-                     isGamingKey={gamingMode && GAMING_KEYS.includes(key.code)}
+                     disabled={isModifierKey(key.code) || (excludedKeys.has(key.code) && !isExcludeMode)}
                      isExcluded={excludedKeys.has(key.code)}
-                     description={(gamingMode ? gamingDescriptions : descriptions)[key.code]}
+                     description={descriptions[key.code]}
                    />
                 ))}
               </div>
@@ -525,8 +476,8 @@ export const KeyboardLayout = () => {
           <div className="text-center text-sm text-muted-foreground space-y-2">
             <p>Modifier keys (Ctrl, Alt, Shift) are disabled as they are part of the combination.</p>
             <p>Red indicator means the key combination is already assigned.</p>
-            {gamingMode && <p>Yellow keys are locked gaming keys (WASD, I, O, /, Tab, Caps, Backspace, Enter, Space).</p>}
             <p><strong>Enable "Exclude Keys Mode" to click keys and exclude them (gray).</strong></p>
+            <p>Excluded keys cannot be interacted with unless in Exclude Keys Mode.</p>
             <p>When adding new hotkeys, you can optionally add a description or skip it.</p>
             <p>Descriptions are limited to 15 characters and will be shown under the key.</p>
           </div>
@@ -538,7 +489,7 @@ export const KeyboardLayout = () => {
           onSave={handleDescriptionSave}
           onSkip={handleDescriptionSkip}
           keyLabel={descriptionDialog.keyLabel}
-          currentDescription={(gamingMode ? gamingDescriptions : descriptions)[descriptionDialog.keyCode]}
+          currentDescription={descriptions[descriptionDialog.keyCode]}
         />
       </div>
     </div>
