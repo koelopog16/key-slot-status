@@ -15,6 +15,7 @@ interface HotkeyDescriptionDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (description: string) => void;
+  onSkip?: () => void;
   keyLabel: string;
   currentDescription?: string;
 }
@@ -23,6 +24,7 @@ export const HotkeyDescriptionDialog = ({
   isOpen,
   onClose,
   onSave,
+  onSkip,
   keyLabel,
   currentDescription = "",
 }: HotkeyDescriptionDialogProps) => {
@@ -33,18 +35,31 @@ export const HotkeyDescriptionDialog = ({
     onClose();
   };
 
+  const handleSkip = () => {
+    if (onSkip) {
+      onSkip();
+    }
+    onClose();
+  };
+
   const handleCancel = () => {
     setDescription(currentDescription);
     onClose();
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSave();
+    }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Set Hotkey Description</DialogTitle>
+          <DialogTitle>Set Hotkey Description (Optional)</DialogTitle>
           <DialogDescription>
-            Add a description for the "{keyLabel}" key to help you remember what it does.
+            Add a description for the "{keyLabel}" key to help you remember what it does, or skip to proceed without one.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -56,15 +71,23 @@ export const HotkeyDescriptionDialog = ({
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              onKeyPress={handleKeyPress}
               className="col-span-3"
               placeholder="e.g., Jump, Attack, Open inventory..."
-              maxLength={20}
+              maxLength={15}
+              autoFocus
             />
           </div>
+          <p className="text-xs text-muted-foreground text-center">
+            Press Enter to save, or use the buttons below. Max 15 characters.
+          </p>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={handleCancel}>
             Cancel
+          </Button>
+          <Button variant="secondary" onClick={handleSkip}>
+            Skip
           </Button>
           <Button onClick={handleSave}>Save</Button>
         </DialogFooter>

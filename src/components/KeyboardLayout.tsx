@@ -184,7 +184,9 @@ export const KeyboardLayout = () => {
     const saved = localStorage.getItem(GAMING_MODE_KEY);
     return saved ? JSON.parse(saved) : false;
   });
+  const [isExcludeMode, setIsExcludeMode] = useState(false);
   const [descriptions, setDescriptions] = useState<Record<string, string>>(loadDescriptions);
+  const [gamingDescriptions, setGamingDescriptions] = useState<Record<string, string>>({});
   const [excludedKeys, setExcludedKeys] = useState<Set<string>>(loadExcludedKeys);
   const [descriptionDialog, setDescriptionDialog] = useState<{
     isOpen: boolean;
@@ -208,8 +210,8 @@ export const KeyboardLayout = () => {
     saveExcludedKeys(excludedKeys);
   }, [excludedKeys]);
 
-  // Handle double-click to exclude/include keys
-  const handleKeyDoubleClick = (keyCode: string) => {
+  // Handle exclude mode toggle
+  const toggleExcludeKey = (keyCode: string) => {
     if (gamingMode && GAMING_KEYS.includes(keyCode)) {
       return; // Don't allow excluding gaming keys
     }
@@ -241,6 +243,15 @@ export const KeyboardLayout = () => {
       
       if (currentSet.has(keyCode)) {
         currentSet.delete(keyCode);
+        // Clear description when key becomes available
+        const currentDescriptions = gamingMode ? gamingDescriptions : descriptions;
+        const updatedDescriptions = { ...currentDescriptions };
+        delete updatedDescriptions[keyCode];
+        if (gamingMode) {
+          setGamingDescriptions(updatedDescriptions);
+        } else {
+          setDescriptions(updatedDescriptions);
+        }
       } else {
         currentSet.add(keyCode);
       }
@@ -319,10 +330,15 @@ export const KeyboardLayout = () => {
     event.target.value = ""; // Reset input
   };
 
-  // Handle key click with description dialog
+  // Handle key click with exclude mode or normal toggle
   const handleKeyClick = (keyCode: string, keyLabel: string) => {
     if (gamingMode && GAMING_KEYS.includes(keyCode)) {
       return; // Don't allow interaction with gaming keys
+    }
+
+    if (isExcludeMode) {
+      toggleExcludeKey(keyCode);
+      return;
     }
 
     if (!getKeyStatus(keyCode)) {
@@ -335,10 +351,21 @@ export const KeyboardLayout = () => {
   };
 
   const handleDescriptionSave = (description: string) => {
-    setDescriptions(prev => ({
-      ...prev,
-      [descriptionDialog.keyCode]: description
-    }));
+    if (gamingMode) {
+      setGamingDescriptions(prev => ({
+        ...prev,
+        [descriptionDialog.keyCode]: description
+      }));
+    } else {
+      setDescriptions(prev => ({
+        ...prev,
+        [descriptionDialog.keyCode]: description
+      }));
+    }
+    toggleKey(descriptionDialog.keyCode);
+  };
+
+  const handleDescriptionSkip = () => {
     toggleKey(descriptionDialog.keyCode);
   };
 
@@ -368,8 +395,8 @@ export const KeyboardLayout = () => {
         {/* Controls */}
         <Card className="p-6">
           <div className="space-y-4">
-            {/* Gaming Mode Toggle */}
-            <div className="flex items-center justify-center">
+            {/* Gaming Mode and Exclude Mode Toggles */}
+            <div className="flex items-center justify-center gap-8">
               <div className="flex items-center space-x-2">
                 <Switch
                   id="gaming-mode"
@@ -377,6 +404,14 @@ export const KeyboardLayout = () => {
                   onCheckedChange={setGamingMode}
                 />
                 <Label htmlFor="gaming-mode">Gaming Mode</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="exclude-mode"
+                  checked={isExcludeMode}
+                  onCheckedChange={setIsExcludeMode}
+                />
+                <Label htmlFor="exclude-mode">Exclude Keys Mode</Label>
               </div>
             </div>
 
@@ -474,11 +509,10 @@ export const KeyboardLayout = () => {
                      isExtraWide={key.isExtraWide}
                      isTaken={getKeyStatus(key.code)}
                      onClick={() => handleKeyClick(key.code, key.label)}
-                     onDoubleClick={() => handleKeyDoubleClick(key.code)}
                      disabled={isModifierKey(key.code)}
                      isGamingKey={gamingMode && GAMING_KEYS.includes(key.code)}
                      isExcluded={excludedKeys.has(key.code)}
-                     description={descriptions[key.code]}
+                     description={(gamingMode ? gamingDescriptions : descriptions)[key.code]}
                    />
                 ))}
               </div>
@@ -486,13 +520,15 @@ export const KeyboardLayout = () => {
           </div>
         </Card>
 
-        {/* Legend */}
+        {/* Instructions */}
         <Card className="p-4">
           <div className="text-center text-sm text-muted-foreground space-y-2">
             <p>Modifier keys (Ctrl, Alt, Shift) are disabled as they are part of the combination.</p>
             <p>Red indicator means the key combination is already assigned.</p>
             {gamingMode && <p>Yellow keys are locked gaming keys (WASD, I, O, /, Tab, Caps, Backspace, Enter, Space).</p>}
-            <p><strong>Double-click any key twice to exclude it (gray) or reinstate it.</strong></p>
+            <p><strong>Enable "Exclude Keys Mode" to click keys and exclude them (gray).</strong></p>
+            <p>When adding new hotkeys, you can optionally add a description or skip it.</p>
+            <p>Descriptions are limited to 15 characters and will be shown under the key.</p>
           </div>
         </Card>
 
@@ -500,8 +536,9 @@ export const KeyboardLayout = () => {
           isOpen={descriptionDialog.isOpen}
           onClose={() => setDescriptionDialog({ isOpen: false, keyCode: "", keyLabel: "" })}
           onSave={handleDescriptionSave}
+          onSkip={handleDescriptionSkip}
           keyLabel={descriptionDialog.keyLabel}
-          currentDescription={descriptions[descriptionDialog.keyCode]}
+          currentDescription={(gamingMode ? gamingDescriptions : descriptions)[descriptionDialog.keyCode]}
         />
       </div>
     </div>

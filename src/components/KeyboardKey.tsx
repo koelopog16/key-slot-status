@@ -7,7 +7,6 @@ interface KeyboardKeyProps {
   isExtraWide?: boolean;
   isTaken: boolean;
   onClick: () => void;
-  onDoubleClick?: () => void;
   disabled?: boolean;
   isGamingKey?: boolean;
   isExcluded?: boolean;
@@ -21,7 +20,6 @@ export const KeyboardKey = ({
   isExtraWide = false,
   isTaken, 
   onClick,
-  onDoubleClick,
   disabled = false,
   isGamingKey = false,
   isExcluded = false,
@@ -30,7 +28,6 @@ export const KeyboardKey = ({
   return (
     <button
       onClick={onClick}
-      onDoubleClick={onDoubleClick}
       disabled={disabled}
       className={cn(
         "relative h-12 rounded-md border-2 font-mono text-sm font-medium transition-all duration-200 flex items-center justify-center",
