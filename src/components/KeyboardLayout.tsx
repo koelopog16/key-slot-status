@@ -222,7 +222,7 @@ export const KeyboardLayout = () => {
         currentSet.delete(keyCode);
         // Clear description when key becomes available
         const updatedDescriptions = { ...descriptions };
-        delete updatedDescriptions[keyCode];
+        delete updatedDescriptions[`${currentCategory}:${keyCode}`];
         setDescriptions(updatedDescriptions);
       } else {
         currentSet.add(keyCode);
@@ -247,7 +247,7 @@ export const KeyboardLayout = () => {
       "Category,KeyCode,Description",
       ...Object.entries(takenKeys).flatMap(([category, keys]) =>
         Array.from(keys).map(keyCode => 
-          `${category},"${keyCode}","${descriptions[keyCode] || ""}"`
+          `${category},"${keyCode}","${descriptions[`${category}:${keyCode}`] || ""}"`
         )
       )
     ].join("\n");
@@ -286,7 +286,7 @@ export const KeyboardLayout = () => {
             if (category in newTakenKeys) {
               newTakenKeys[category as ModifierCategory].add(keyCode);
               if (description) {
-                newDescriptions[keyCode] = description;
+                newDescriptions[`${category}:${keyCode}`] = description;
               }
             }
           }
@@ -326,7 +326,7 @@ export const KeyboardLayout = () => {
   const handleDescriptionSave = (description: string) => {
     setDescriptions(prev => ({
       ...prev,
-      [descriptionDialog.keyCode]: description
+      [`${currentCategory}:${descriptionDialog.keyCode}`]: description
     }));
     toggleKey(descriptionDialog.keyCode);
   };
@@ -463,7 +463,7 @@ export const KeyboardLayout = () => {
                      onClick={() => handleKeyClick(key.code, key.label)}
                      disabled={isModifierKey(key.code) || (excludedKeys.has(key.code) && !isExcludeMode)}
                      isExcluded={excludedKeys.has(key.code)}
-                     description={descriptions[key.code]}
+                     description={descriptions[`${currentCategory}:${key.code}`]}
                    />
                 ))}
               </div>
@@ -489,7 +489,7 @@ export const KeyboardLayout = () => {
           onSave={handleDescriptionSave}
           onSkip={handleDescriptionSkip}
           keyLabel={descriptionDialog.keyLabel}
-          currentDescription={descriptions[descriptionDialog.keyCode]}
+          currentDescription={descriptions[`${currentCategory}:${descriptionDialog.keyCode}`]}
         />
       </div>
     </div>
