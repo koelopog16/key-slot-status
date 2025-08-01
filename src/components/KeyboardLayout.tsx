@@ -479,7 +479,7 @@ export const KeyboardLayout = () => {
             <p><strong>Enable "Exclude Keys Mode" to click keys and exclude them (gray).</strong></p>
             <p>Excluded keys cannot be interacted with unless in Exclude Keys Mode.</p>
             <p>When adding new hotkeys, you can optionally add a description or skip it.</p>
-            <p>Descriptions are limited to 15 characters and will be shown under the key.</p>
+            <p>Descriptions are limited to 25 characters and will be shown under the key.</p>
           </div>
         </Card>
 

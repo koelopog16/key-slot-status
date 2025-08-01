@@ -46,7 +46,7 @@ export const KeyboardKey = ({
       <div className="flex flex-col items-center justify-center h-full">
         <span className="text-xs">{keyLabel}</span>
         {description && (
-          <span className="text-[8px] text-muted-foreground mt-0.5 truncate max-w-full px-1">
+          <span className="text-[8px] text-muted-foreground mt-0.5 truncate max-w-full px-1 leading-tight break-words overflow-wrap-anywhere">
             {description}
           </span>
         )}

@@ -74,12 +74,12 @@ export const HotkeyDescriptionDialog = ({
               onKeyPress={handleKeyPress}
               className="col-span-3"
               placeholder="e.g., Jump, Attack, Open inventory..."
-              maxLength={15}
+              maxLength={25}
               autoFocus
             />
           </div>
           <p className="text-xs text-muted-foreground text-center">
-            Press Enter to save, or use the buttons below. Max 15 characters.
+            Press Enter to save, or use the buttons below. Max 25 characters.
           </p>
         </div>
         <DialogFooter>
